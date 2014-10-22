@@ -185,6 +185,47 @@ def node(node_name):
         reports_count=app.config['REPORTS_COUNT'])
 
 
+@app.route('/events/<node>')
+def events_node(node):
+    return events_node_count(node, app.config['DEFAULT_EVENTS'])
+
+
+@app.route('/events/<node>/<max_events>')
+def events_node_count(node, max_events):
+    """Fetches all events for a node"""
+
+    try:
+        max_events = int(max_events)
+    except:
+        max_events = app.config['DEFAULT_EVENTS']
+
+    node = get_or_abort(puppetdb.node, node)
+    events = yield_or_stop(puppetdb.events(
+        '["=", "certname", "{0}"]'.format(node)
+        , '[{"field": "timestamp", "order": "desc"}]'
+        , max_events
+        ))
+
+    events_list = []
+    for event in events:
+        events_list.append(event)
+    events_list.sort(key=lambda e: e.timestamp, reverse=True)
+
+    reports = collections.OrderedDict()
+    for event in events_list:
+        if reports.has_key(event.hash_) is False:
+            reports[event.hash_] = []
+        reports[event.hash_].append(event)
+
+    return render_template(
+        'events_node.html',
+        node=node,
+        reports=reports,
+        fromDate=events_list[-1].timestamp,
+        toDate=events_list[0].timestamp,
+        event_count=len(events_list))
+
+
 @app.route('/reports')
 def reports():
     """Doesn't do much yet but is meant to show something like the reports of
