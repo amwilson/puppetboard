@@ -27,7 +27,7 @@
       </table>
     </div>
     <div class='row'>
-      <h1>Reports</h1>
+      <h1>Reports <a title='Events' href="{{url_for('events_node', node=node.name)}}"><i class='medium darkblue text file icon'></i></a></h1>
       {{ macros.reports_table(reports, node.name, reports_count, condensed=True, hash_truncate=True, show_conf_col=False, show_agent_col=False, show_host_col=False)}}
     </div>
   </div>
