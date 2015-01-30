@@ -110,13 +110,19 @@ def index():
         unreported=app.config['UNRESPONSIVE_HOURS'],
         with_status=True)
 
+    facts = puppetdb.facts(name="osfamily")
+    fact_data = {}
+    for fact in facts:
+        if not fact_data.has_key(fact.node):
+            fact_data[fact.node] = fact.value.lower()
+
     nodes_overview = []
     stats = {
         'changed': 0,
         'unchanged': 0,
         'failed': 0,
         'unreported': 0,
-	'noop': 0
+        'noop': 0
         }
 
     for node in nodes:
@@ -132,6 +138,8 @@ def index():
             stats['unchanged'] += 1
 
         if node.status != 'unchanged':
+            if fact_data.has_key(node.name):
+                node.os = fact_data[node.name]
             nodes_overview.append(node)
 
     return render_template(
@@ -175,12 +183,17 @@ def node(node_name):
     heavy to do within a single request.
     """
     node = get_or_abort(puppetdb.node, node_name)
-    facts = node.facts()
+    facts = []
+    for fact in yield_or_stop(node.facts()):
+        if fact.name == 'osfamily':
+            node.os = fact.value.lower()
+        facts.append(fact)
+
     reports = limit_reports(node.reports(), app.config['REPORTS_COUNT'])
     return render_template(
         'node.html',
         node=node,
-        facts=yield_or_stop(facts),
+        facts=facts,
         reports=yield_or_stop(reports),
         reports_count=app.config['REPORTS_COUNT'])
 
