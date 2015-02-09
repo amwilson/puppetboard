@@ -110,7 +110,7 @@ def index():
         unreported=app.config['UNRESPONSIVE_HOURS'],
         with_status=True)
 
-    facts = puppetdb.facts(name="osfamily")
+    facts = puppetdb.facts(name="operatingsystem")
     fact_data = {}
     for fact in facts:
         if not fact_data.has_key(fact.node):
@@ -185,7 +185,7 @@ def node(node_name):
     node = get_or_abort(puppetdb.node, node_name)
     facts = []
     for fact in yield_or_stop(node.facts()):
-        if fact.name == 'osfamily':
+        if fact.name == 'operatingsystem':
             node.os = fact.value.lower()
         facts.append(fact)
 
