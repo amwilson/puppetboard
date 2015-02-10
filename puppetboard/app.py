@@ -326,9 +326,9 @@ def fact(fact):
     # om nom nom
     localfacts = [f for f in yield_or_stop(puppetdb.facts(name=fact))]
 
-    facts = puppetdb.facts(name="operatingsystem")
+    node_facts = puppetdb.facts(name="operatingsystem")
     osfacts = {}
-    for f in facts:
+    for f in node_facts:
         if not osfacts.has_key(f.node):
             osfacts[f.node] = f.value.lower()
 
@@ -347,6 +347,17 @@ def fact_value(fact, value):
     """On asking for fact/value get all nodes with that fact."""
     facts = get_or_abort(puppetdb.facts, fact, value)
     localfacts = [f for f in yield_or_stop(facts)]
+
+    node_facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in node_facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
+    for f in localfacts:
+        if osfacts.has_key(f.node):
+            f.node_operatingsystem = osfacts[f.node]
+
     return render_template(
         'fact.html',
         name=fact,
