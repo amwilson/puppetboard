@@ -165,8 +165,16 @@ def nodes():
     nodelist = puppetdb.nodes(
         unreported=app.config['UNRESPONSIVE_HOURS'],
         with_status=True)
+
+    node_facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in node_facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
     nodes = []
     for node in yield_or_stop(nodelist):
+        node.os = osfacts[node.name]
         if status_arg:
             if node.status == status_arg:
                 nodes.append(node)
@@ -183,11 +191,10 @@ def node(node_name):
     heavy to do within a single request.
     """
     node = get_or_abort(puppetdb.node, node_name)
-    facts = []
-    for fact in yield_or_stop(node.facts()):
+    facts = [f for f in yield_or_stop(node.facts())]
+    for fact in facts:
         if fact.name == 'operatingsystem':
             node.os = fact.value.lower()
-        facts.append(fact)
 
     reports = limit_reports(node.reports(), app.config['REPORTS_COUNT'])
     return render_template(
@@ -318,6 +325,17 @@ def fact(fact):
     # we can only consume the generator once, lists can be doubly consumed
     # om nom nom
     localfacts = [f for f in yield_or_stop(puppetdb.facts(name=fact))]
+
+    facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
+    for f in localfacts:
+        if osfacts.has_key(f.node):
+            f.node_operatingsystem = osfacts[f.node]
+
     return Response(stream_with_context(stream_template(
         'fact.html',
         name=fact,
