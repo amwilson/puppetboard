@@ -19,7 +19,7 @@
     {% for fact in facts %}
     <tr>
       {% if show_node %}
-        <td><a href="{{url_for('node', node_name=fact.node)}}">{{fact.node}}</a></td>
+        <td><img src="{{ url_for('static', filename='images/' + fact.node_operatingsystem + '.png') }}" alt="{{fact.node_operatingsystem}}" />&nbsp;<a href="{{url_for('node', node_name=fact.node)}}">{{fact.node}}</a></td>
       {% else %}
         <td><a href="{{url_for('fact', fact=fact.name)}}">{{fact.name}}</a></td>
       {% endif %}

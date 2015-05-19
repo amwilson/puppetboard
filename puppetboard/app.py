@@ -110,13 +110,19 @@ def index():
         unreported=app.config['UNRESPONSIVE_HOURS'],
         with_status=True)
 
+    facts = puppetdb.facts(name="operatingsystem")
+    fact_data = {}
+    for fact in facts:
+        if not fact_data.has_key(fact.node):
+            fact_data[fact.node] = fact.value.lower()
+
     nodes_overview = []
     stats = {
         'changed': 0,
         'unchanged': 0,
         'failed': 0,
         'unreported': 0,
-	'noop': 0
+        'noop': 0
         }
 
     for node in nodes:
@@ -132,6 +138,8 @@ def index():
             stats['unchanged'] += 1
 
         if node.status != 'unchanged':
+            if fact_data.has_key(node.name):
+                node.os = fact_data[node.name]
             nodes_overview.append(node)
 
     return render_template(
@@ -157,8 +165,16 @@ def nodes():
     nodelist = puppetdb.nodes(
         unreported=app.config['UNRESPONSIVE_HOURS'],
         with_status=True)
+
+    node_facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in node_facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
     nodes = []
     for node in yield_or_stop(nodelist):
+        node.os = osfacts[node.name]
         if status_arg:
             if node.status == status_arg:
                 nodes.append(node)
@@ -175,12 +191,16 @@ def node(node_name):
     heavy to do within a single request.
     """
     node = get_or_abort(puppetdb.node, node_name)
-    facts = node.facts()
+    facts = [f for f in yield_or_stop(node.facts())]
+    for fact in facts:
+        if fact.name == 'operatingsystem':
+            node.os = fact.value.lower()
+
     reports = limit_reports(node.reports(), app.config['REPORTS_COUNT'])
     return render_template(
         'node.html',
         node=node,
-        facts=yield_or_stop(facts),
+        facts=facts,
         reports=yield_or_stop(reports),
         reports_count=app.config['REPORTS_COUNT'])
 
@@ -305,6 +325,17 @@ def fact(fact):
     # we can only consume the generator once, lists can be doubly consumed
     # om nom nom
     localfacts = [f for f in yield_or_stop(puppetdb.facts(name=fact))]
+
+    node_facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in node_facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
+    for f in localfacts:
+        if osfacts.has_key(f.node):
+            f.node_operatingsystem = osfacts[f.node]
+
     return Response(stream_with_context(stream_template(
         'fact.html',
         name=fact,
@@ -316,6 +347,17 @@ def fact_value(fact, value):
     """On asking for fact/value get all nodes with that fact."""
     facts = get_or_abort(puppetdb.facts, fact, value)
     localfacts = [f for f in yield_or_stop(facts)]
+
+    node_facts = puppetdb.facts(name="operatingsystem")
+    osfacts = {}
+    for f in node_facts:
+        if not osfacts.has_key(f.node):
+            osfacts[f.node] = f.value.lower()
+
+    for f in localfacts:
+        if osfacts.has_key(f.node):
+            f.node_operatingsystem = osfacts[f.node]
+
     return render_template(
         'fact.html',
         name=fact,

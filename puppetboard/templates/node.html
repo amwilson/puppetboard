@@ -9,7 +9,7 @@
         <tbody>
           <tr>
             <th>Hostname</th>
-            <td style="word-wrap:break-word"><b>{{node.name}}</b></td>
+            <td style="word-wrap:break-word"><b>{{node.name}}</b>&nbsp;<img src="{{ url_for('static', filename='images/' + node.os + '.png') }}" /></td>
           </tr>
           <tr>
             <th>Facts &nbsp;&nbsp;&nbsp;&nbsp;<i title='uploaded at' class=' upload icon'></i></th>
