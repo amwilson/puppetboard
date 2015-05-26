@@ -33,7 +33,7 @@ app.secret_key = os.urandom(24)
 app.jinja_env.filters['jsonprint'] = jsonprint
 
 puppetdb = connect(
-    api_version=3,
+    api_version=4,
     host=app.config['PUPPETDB_HOST'],
     port=app.config['PUPPETDB_PORT'],
     ssl_verify=app.config['PUPPETDB_SSL_VERIFY'],
@@ -116,8 +116,14 @@ def index():
         'unchanged': 0,
         'failed': 0,
         'unreported': 0,
-	'noop': 0
+        'noop': 0
         }
+
+    latest_reports = puppetdb.reports(query=None, order_by='[{"field": "end-time", "order": "desc"}]', limit=3000)
+    failed_nodes = []
+    for node_report in latest_reports:
+        if node_report.status == 'failed':
+            failed_nodes.append(node_report.node)
 
     for node in nodes:
         if node.status == 'unreported':
@@ -132,6 +138,10 @@ def index():
             stats['unchanged'] += 1
 
         if node.status != 'unchanged':
+            nodes_overview.append(node)
+
+        if node.name in failed_nodes and node not in nodes_overview:
+            node.status = 'failed'
             nodes_overview.append(node)
 
     return render_template(
@@ -176,7 +186,7 @@ def node(node_name):
     """
     node = get_or_abort(puppetdb.node, node_name)
     facts = node.facts()
-    reports = limit_reports(node.reports(), app.config['REPORTS_COUNT'])
+    reports = node.reports(order_by='[{"field": "receive-time", "order": "desc"}]', limit=app.config['REPORTS_COUNT'])
     return render_template(
         'node.html',
         node=node,
@@ -209,20 +219,29 @@ def events_node_count(node, max_events):
     events_list = []
     for event in events:
         events_list.append(event)
-    events_list.sort(key=lambda e: e.timestamp, reverse=True)
 
     reports = collections.OrderedDict()
-    for event in events_list:
-        if reports.has_key(event.hash_) is False:
-            reports[event.hash_] = []
-        reports[event.hash_].append(event)
+
+    if len(events_list) > 0:
+        events_list.sort(key=lambda e: e.timestamp, reverse=True)
+
+        for event in events_list:
+            if reports.has_key(event.hash_) is False:
+                reports[event.hash_] = []
+            reports[event.hash_].append(event)
+
+        from_date = events_list[-1].timestamp
+        to_date = events_list[0].timestamp
+    else:
+        from_date = 0
+        to_date = 0
 
     return render_template(
         'events_node.html',
         node=node,
         reports=reports,
-        fromDate=events_list[-1].timestamp,
-        toDate=events_list[0].timestamp,
+        fromDate=from_date,
+        toDate=to_date,
         event_count=len(events_list))
 
 
