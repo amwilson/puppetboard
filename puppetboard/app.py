@@ -123,7 +123,10 @@ def index():
     checked_nodes = []
     failed_nodes = []
     for node_report in latest_reports:
-        if node_report.node not in checked_nodes and node_report.status == 'failed':
+        if node_report.node in checked_nodes:
+            continue
+
+        if node_report.status == 'failed':
             failed_nodes.append(node_report.node)
 
         checked_nodes.append(node_report.node)
