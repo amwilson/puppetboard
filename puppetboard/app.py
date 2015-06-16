@@ -149,9 +149,12 @@ def index():
         else:
             stats['unchanged'] += 1
 
+        if fact_data.has_key(node.name):
+            node.os = fact_data[node.name]
+        else:
+            node.os = 'unknown'
+
         if node.status != 'unchanged':
-            if fact_data.has_key(node.name):
-                node.os = fact_data[node.name]
             nodes_overview.append(node)
 
         if node.name in failed_nodes and node not in nodes_overview:
