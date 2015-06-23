@@ -37,7 +37,7 @@
             {% if node.events['successes'] %}<span class="ui small count label green">{{node.events['successes']}}</span>{% else %}<span class="ui small count label">0</span>{% endif%}</span>
           {% endif %}
       </td>
-      <td><img src="{{ url_for('static', filename='images/' + node.os + '.png') }}" alt="{{node.os}}" />&nbsp;<a href="{{url_for('node', node_name=node.name)}}">{{node.name}}</a></td>
+      <td>{% if node.os is defined %}<img src="{{ url_for('static', filename='images/' + node.os + '.png') }}" alt="{{node.os}}" />&nbsp;{% endif %}<a href="{{url_for('node', node_name=node.name)}}">{{node.name}}</a></td>
       <td rel="utctimestamp">{{node.catalog_timestamp}}</td>
       <td>
         {% if node.report_timestamp %}

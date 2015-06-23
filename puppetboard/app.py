@@ -151,8 +151,6 @@ def index():
 
         if fact_data.has_key(node.name):
             node.os = fact_data[node.name]
-        else:
-            node.os = 'unknown'
 
         if node.status != 'unchanged':
             nodes_overview.append(node)
@@ -193,7 +191,9 @@ def nodes():
 
     nodes = []
     for node in yield_or_stop(nodelist):
-        node.os = osfacts[node.name]
+        if osfacts.has_key(node.name):
+            node.os = osfacts[node.name]
+
         if status_arg:
             if node.status == status_arg:
                 nodes.append(node)
