@@ -157,6 +157,7 @@ def index():
 
         if node.name in failed_nodes and node not in nodes_overview:
             node.status = 'failed'
+            stats['failed'] += 1
             nodes_overview.append(node)
 
     return render_template(
